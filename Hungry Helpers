@@ -1,0 +1,509 @@
+// Rumman K. Project 
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <cstdlib>
+#include <ctime>
+#include <iomanip>
+
+using namespace std;
+
+// Base class for User
+class User {
+protected:
+     string id;
+     string password;
+
+public:
+     User() {}
+     User(string id, string password) : id(id), password(password) {}
+
+     virtual void displayMenu() = 0;
+     virtual void login() = 0;
+};
+
+// Derived class for Admin
+class Admin : public User {
+public:
+     Admin() {}
+     Admin(string id, string password) : User(id, password) {}
+
+     void displayMenu() override {
+          cout << "--------------------" << endl;
+          cout << "ADMIN MENU" << endl;
+          cout << "--------------------" << endl;
+          cout << "1. Display Menu" << endl;
+          cout << "2. Add Dishes" << endl;
+          cout << "3. Delete Dishes" << endl;
+          cout << "4. View Records" << endl;
+          cout << "5. View Receipts" << endl;
+          cout << "6. Logout" << endl;
+          cout << endl;
+     }
+
+     void login() override {
+          string adminId, adminPassword;
+          cout << "Enter Admin ID: ";
+          cin >> adminId;
+          cout << "Enter Password: ";
+          cin >> adminPassword;
+
+          if (adminId == "ad" && adminPassword == "pas") {
+               cout << "Admin Login Successful!" << endl;
+               cout << endl;
+               // Perform admin operations
+               performAdminOperations();
+          }
+          else {
+               cout << "Invalid Admin ID or Password!" << endl;
+          }
+     }
+
+     void performAdminOperations() {
+          int choice;
+          while (true) {
+               displayMenu();
+               cout << "Enter your choice: ";
+               cin >> choice;
+               cout << endl;
+
+               switch (choice) {
+               case 1:
+                    // Display Menu
+                    displayMenuItems();
+                    break;
+               case 2:
+                    // Add Dishes
+                    addDish();
+                    break;
+               case 3:
+                    // Delete Dishes
+                    deleteDish();
+                    break;
+               case 4:
+                    // View Records
+                    viewRecords();
+                    break;
+               case 5:
+                    // View Receipts
+                    viewReceipts();
+                    break;
+               case 6:
+                    // Logout
+                    cout << "Admin Logout Successful!" << endl;
+                    return;
+               default:
+                    cout << "Invalid choice! Try again." << endl;
+               }
+          }
+     }
+
+     void displayMenuItems() {
+          ifstream menuFile("menu.txt");
+          string dish;
+          double price;
+
+          if (menuFile.is_open()) {
+               cout << "MENU ITEMS" << endl;
+               while (menuFile >> dish >> price) {
+                    cout << dish << "\t$" << price << endl;
+               }
+               menuFile.close();
+          }
+          else {
+               cout << "Menu file not found!" << endl;
+          }
+     }
+
+     void addDish() {
+          string dish;
+          double price;
+          cout << "ADDING DISH!" << endl;
+          cout << "Enter the dish name: ";
+          cin.ignore();
+          getline(cin, dish);
+          cout << "Enter the price: $";
+          cin >> price;
+
+          ofstream menuFile("menu.txt", ios::app);
+          if (menuFile.is_open()) {
+               menuFile << dish << " " << price << endl;
+               menuFile.close();
+               cout << "Dish added successfully!" << endl;
+               cout << endl;
+          }
+          else {
+               cout << "Menu file not found!" << endl;
+          }
+     }
+
+     void deleteDish() {
+          string dishToDelete;
+          cout << "DELETING DISH!" << endl;
+          cout << "Enter the dish name to delete: ";
+          cin.ignore();
+          getline(cin, dishToDelete);
+
+          ifstream menuFile("menu.txt");
+          vector<string> dishes;
+          string dish;
+          double price;
+
+          if (menuFile.is_open()) {
+               while (menuFile >> dish >> price) {
+                    if (dish != dishToDelete) {
+                         dishes.push_back(dish + " " + to_string(price));
+                    }
+               }
+               menuFile.close();
+
+               ofstream updatedMenuFile("menu.txt");
+               if (updatedMenuFile.is_open()) {
+                    for (const auto& d : dishes) {
+                         updatedMenuFile << d << endl;
+                    }
+                    updatedMenuFile.close();
+                    cout << "Dish deleted successfully!" << endl;
+                    cout << endl;
+               }
+               else {
+                    cout << "Error updating the menu file!" << endl;
+               }
+          }
+          else {
+               cout << "Menu file not found!" << endl;
+          }
+     }
+
+     void viewRecords() {
+          ifstream recordsFile("orders.txt");
+          string record;
+
+          if (recordsFile.is_open()) {
+               cout << "ORDER RECORDS" << endl;
+               while (getline(recordsFile, record)) {
+                    cout << record << endl;
+               }
+               recordsFile.close();
+               cout << endl;
+          }
+          else {
+               cout << "Records file not found!" << endl;
+          }
+     }
+
+     void viewReceipts() {
+          ifstream orderFile("orders.txt");
+          string line;
+          bool found = false;
+
+          if (orderFile.is_open()) {
+               cout << "RECEIPTS" << endl;
+               while (getline(orderFile, line)) {
+                    if (line.find("Customer ID: C") != string::npos) {
+                         found = true;
+                         cout << line << endl;
+                         while (getline(orderFile, line)) {
+                              if (line == "----------------------") {
+                                   break;
+                              }
+                              cout << line << endl;
+                         }
+                         cout << endl;
+                    }
+               }
+               orderFile.close();
+
+               if (!found) {
+                    cout << "No receipts found!" << endl;
+               }
+          }
+          else {
+               cout << "Orders file not found!" << endl;
+          }
+     }
+};
+
+// Derived class for Customer
+class Customer : public User {
+private:
+     string name;
+     string phoneNumber;
+     string address;
+     vector<pair<string, int>> orderItems;
+     double total;
+
+public:
+     Customer() {}
+     Customer(string id, string password) : User(id, password) {}
+
+     void displayMenu() override {
+          cout << "--------------------" << endl;
+          cout << "CUSTOMER MENU" << endl;
+          cout << "--------------------" << endl;
+          cout << "1. Display Menu" << endl;
+          cout << "2. Place Order" << endl;
+          cout << "3. Add Details" << endl;
+          cout << "4. Show Receipt" << endl;
+          cout << "5. Logout" << endl;
+          cout << endl;
+     }
+
+     void login() override {
+          int userTypeChoice;
+          cout << "Are you a new customer or an existing customer?";
+          cout << "1. New Customer" << endl;
+          cout << "2. Existing Customer" << endl;
+          cout << "Enter your choice: ";
+          cin >> userTypeChoice;
+
+          if (userTypeChoice == 1) {
+               // Generate random ID and password for new customers
+               srand(time(nullptr));
+               id = "C" + to_string(rand() % 1000);
+               password = id + "1";
+               cout << endl;
+               cout << "New Customer ID: " << id << endl;
+               cout << "Password: " << password << endl;
+               cout << "Please remember your ID and password for future logins." << endl;
+               cout << endl;
+          }
+          else if (userTypeChoice == 2) {
+               // Existing Customer
+               cout << "Enter Customer ID: ";
+               cin >> id;
+               cout << "Enter Password: ";
+               cin >> password;
+               cout << endl;
+
+               bool existingCustomer = checkExistingCustomer();
+               if (existingCustomer) {
+                    cout << "Customer Login Successful!" << endl;
+                    cout << endl;
+                    showReceipt();
+               }
+               else {
+                    cout << "Invalid Customer ID or Password!" << endl;
+                    return;
+               }
+          }
+          else {
+               cout << "Invalid choice!" << endl;
+               return;
+          }
+
+          // Perform customer operations
+          performCustomerOperations();
+     }
+
+     bool checkExistingCustomer();
+
+     void performCustomerOperations() {
+          int choice;
+          while (true) {
+               displayMenu();
+               cout << "Enter your choice: ";
+               cin >> choice;
+               cout << endl;
+
+               switch (choice) {
+               case 1:
+                    // Display Menu
+                    displayMenuItems();
+                    break;
+               case 2:
+                    // Place Order
+                    placeOrder();
+                    break;
+               case 3:
+                    // Add Details
+                    addDetails();
+                    break;
+               case 4:
+                    // Show Receipt
+                    showReceipt();
+                    break;
+               case 5:
+                    // Logout
+                    cout << "Customer Logout Successful!" << endl;
+                    return;
+               default:
+                    cout << "Invalid choice! Try again." << endl;
+               }
+          }
+     }
+
+     void displayMenuItems() {
+          ifstream menuFile("menu.txt");
+          string dish;
+          double price;
+
+          if (menuFile.is_open()) {
+               cout << "MENU ITEMS" << endl;
+               while (menuFile >> dish >> price) {
+                    cout << dish << "\t$" << price << endl;
+               }
+               menuFile.close();
+          }
+          else {
+               cout << "Menu file not found!" << endl;
+          }
+     }
+
+     void placeOrder() {
+          ifstream menuFile("menu.txt");
+          string dish;
+          double price;
+          vector<string> menuItems;
+          int choice;
+
+          if (menuFile.is_open()) {
+               cout << "PLACE ORDER" << endl;
+               cout << "Enter the dish number to order (0 to exit):" << endl;
+               int dishNumber = 1;
+               while (menuFile >> dish >> price) {
+                    cout << dishNumber << ". " << dish << "\t$" << price << endl;
+                    menuItems.push_back(dish + " " + to_string(price));
+                    dishNumber++;
+               }
+               menuFile.close();
+               cout << endl;
+
+               while (true) {
+                    cout << "Enter your choice: ";
+                    cin >> choice;
+                    cout << endl;
+
+                    if (choice == 0) {
+                         break;
+                    }
+                    else if (choice >= 1 && choice <= menuItems.size()) {
+                         orderItems.push_back(make_pair(menuItems[choice - 1], 1));
+                         cout << "Item added to the order!" << endl;
+                    }
+                    else {
+                         cout << "Invalid choice! Try again." << endl;
+                    }
+               }
+          }
+          else {
+               cout << "Menu file not found!" << endl;
+          }
+     }
+
+     void addDetails() {
+          cout << "ADD DETAILS" << endl;
+          cout << "Enter your name: ";
+          cin.ignore();
+          getline(cin, name);
+          cout << "Enter your phone number: ";
+          cin >> phoneNumber;
+          cin.ignore();
+          cout << "Enter your address: ";
+          getline(cin, address);
+          cout << "Details added successfully!" << endl;
+          cout << endl;
+     }
+
+     void showReceipt() {
+          cout << "RECEIPT" << endl;
+          cout << "Customer ID: " << id << endl;
+          cout << "Name: " << name << endl;
+          cout << "Phone Number: " << phoneNumber << endl;
+          cout << "Address: " << address << endl;
+          cout << "Order Items:" << endl;
+          double total = 0.0;
+          for (const auto& item : orderItems) {
+               string dish = item.first;
+               int quantity = item.second;
+               int pos = dish.find_last_of(" ");
+               string itemName = dish.substr(0, pos);
+               double price = stod(dish.substr(pos + 1));
+               total += price * quantity;
+               cout << itemName << " x " << quantity << "\t$" << price * quantity << endl;
+          }
+          cout << "Total: $" << fixed << setprecision(2) << total << endl;
+          cout << "----------------------" << endl;
+          cout << "Thank you for your order!" << endl;
+          cout << endl;
+
+          // Save receipt to file
+          ofstream orderFile("orders.txt", ios::app);
+          if (orderFile.is_open()) {
+               orderFile << "Customer ID: " << id << endl;
+               orderFile << "Name: " << name << endl;
+               orderFile << "Phone Number: " << phoneNumber << endl;
+               orderFile << "Address: " << address << endl;
+               orderFile << "Order Items:" << endl;
+               for (const auto& item : orderItems) {
+                    string dish = item.first;
+                    int quantity = item.second;
+                    orderFile << dish << " x " << quantity << endl;
+               }
+               orderFile << "Total: $" << fixed << setprecision(2) << total << endl;
+               orderFile << "----------------------" << endl;
+               orderFile.close();
+
+               cout << "Receipt saved successfully!" << endl;
+               cout << endl;
+          }
+          else {
+               cout << "Error saving the receipt!" << endl;
+          }
+
+          // Clear the order items
+          orderItems.clear();
+     }
+};
+
+bool Customer::checkExistingCustomer() {
+     ifstream orderFile("orders.txt");
+     string line;
+
+     if (orderFile.is_open()) {
+          while (getline(orderFile, line)) {
+               if (line.find("Customer ID: " + id) != string::npos) {
+                    orderFile.close();
+                    return true;
+               }
+          }
+          orderFile.close();
+     }
+     return false;
+}
+
+int main() {
+     int userType;
+     cout << "---------------------------------------------------------------------------------------------------------------" << endl;
+     cout << " \t\t\t\t\t H_U_N_G_R_Y    H_E_L_P_E_R_S " << endl;
+     cout << "---------------------------------------------------------------------------------------------------------------" << endl;
+     cout << " \t\t\t\t\t\t Rumman K. " << endl;
+     cout << "---------------------------------------------------------------------------------------------------------------" << endl;
+     cout << "Are you an admin or a customer?" << endl;
+     cout << "1. Admin" << endl;
+     cout << "2. Customer" << endl;
+     cout << "Enter your choice: ";
+     cin >> userType;
+     cout << endl;
+
+     User* user;
+     if (userType == 1) {
+          user = new Admin();
+     }
+     else if (userType == 2) {
+          user = new Customer();
+     }
+     else {
+
+          cout << "Invalid choice!" << endl;
+          return 0;
+     }
+
+     user->login();
+     delete user;
+
+     return 0;
+}
+
